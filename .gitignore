@@ -1,0 +1,17 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.idea/
+.vscode/
+TestResults/
+coverage/
+*.db
+*.db-shm
+*.db-wal
+
+## Local environment
+.env
+appsettings.Local.json
