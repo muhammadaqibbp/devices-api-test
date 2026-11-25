@@ -2,6 +2,7 @@ using DevicesApi.Application;
 using DevicesApi.Domain;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using Xunit;
 
 namespace DevicesApi.Tests.Application;
 

@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using DevicesApi.Application;
 using DevicesApi.Domain;
+using Xunit;
 
 namespace DevicesApi.Tests.Integration;
 

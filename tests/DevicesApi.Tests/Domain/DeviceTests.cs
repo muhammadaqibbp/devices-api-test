@@ -1,4 +1,5 @@
 using DevicesApi.Domain;
+using Xunit;
 
 namespace DevicesApi.Tests.Domain;
 
