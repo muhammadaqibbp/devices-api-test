@@ -167,6 +167,23 @@ dotnet test --collect:"XPlat Code Coverage"
 
 Any setting can be overridden with environment variables, e.g. `ConnectionStrings__Devices`.
 
+## Database migrations
+
+The schema is managed with EF Core migrations. On startup the API creates the database if it does not exist and applies
+all pending migrations, so no manual SQL or `database update` is needed to run it.
+
+One-time setup (requires the EF Core tool):
+
+```bash
+dotnet tool install --global dotnet-ef
+dotnet ef migrations add InitialCreate --project src/DevicesApi --output-dir Infrastructure/Migrations
+```
+
+After changing the model, add a new migration with a descriptive name, e.g. `dotnet ef migrations add AddDeviceSerialNumber ...`,
+and commit the generated files. To reset a local database: `dotnet ef database drop --project src/DevicesApi --force`.
+
+The SQLite provider (tests and quick local runs) does not use migrations; it builds its schema from the model.
+
 ## Assumptions and design decisions
 
 - **In-use lock is evaluated against the current state.** If a request changes `name` and also moves the device out of `in-use`
@@ -180,8 +197,6 @@ Any setting can be overridden with environment variables, e.g. `ConnectionString
 
 ## Known limitations and future improvements
 
-- **EF Core migrations.** The schema is created with `EnsureCreated` at startup, which is fine for a first deployment but cannot evolve an existing database.
-  Next step: add `Microsoft.EntityFrameworkCore.Design`, generate an `InitialCreate` migration and call `Database.MigrateAsync()` at startup (or run migrations as a deployment step).
 - **Brand filtering** uses `LOWER(brand)`, which prevents index seeks on the brand index. SQL Server's default collation is already case-insensitive, so at scale drop the `ToLower()` and rely on the collation (or add a computed, indexed column).
 - **GUID keys.** Ids are version 7 GUIDs; SQL Server orders `uniqueidentifier` differently from the byte order, so the clustered index does not get fully sequential inserts. Consider a separate clustered key if write volume grows.
 - **Authentication and authorization** are not implemented.

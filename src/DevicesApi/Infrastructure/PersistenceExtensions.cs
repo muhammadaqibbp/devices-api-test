@@ -42,11 +42,29 @@ public static class PersistenceExtensions
         return services;
     }
 
-    /// <summary>Creates the schema if it does not exist yet. See README for the migrations follow-up.</summary>
+    /// <summary>
+    /// Prepares the database at startup. On SQL Server the database is created if it does not exist and
+    /// all pending migrations are applied. SQLite (tests / quick local runs) has no migrations and its
+    /// schema is created directly from the model.
+    /// </summary>
     public static async Task InitializeDatabaseAsync(this WebApplication app)
     {
         await using var scope = app.Services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<DevicesDbContext>();
-        await dbContext.Database.EnsureCreatedAsync();
+
+        if (dbContext.Database.IsSqlite())
+        {
+            await dbContext.Database.EnsureCreatedAsync();
+            return;
+        }
+
+        if (!dbContext.Database.GetMigrations().Any())
+        {
+            throw new InvalidOperationException(
+                "No EF Core migrations were found. Run: dotnet ef migrations add InitialCreate " +
+                "--project src/DevicesApi --output-dir Infrastructure/Migrations");
+        }
+
+        await dbContext.Database.MigrateAsync();
     }
 }
