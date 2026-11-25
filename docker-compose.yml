@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: devices
+      POSTGRES_USER: devices
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devices_dev_password}
+    volumes:
+      - devices-db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devices -d devices"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Devices: Host=db;Port=5432;Database=devices;Username=devices;Password=${POSTGRES_PASSWORD:-devices_dev_password}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  devices-db-data:
