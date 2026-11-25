@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Restore first so the layer is cached until a project file changes.
@@ -12,7 +12,7 @@ RUN dotnet restore DevicesApi.sln
 COPY src/ src/
 RUN dotnet publish src/DevicesApi/DevicesApi.csproj -c Release -o /app/publish --no-restore /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish ./
 

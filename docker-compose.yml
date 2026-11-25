@@ -1,19 +1,21 @@
 services:
   db:
-    image: postgres:17-alpine
+    image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      POSTGRES_DB: devices
-      POSTGRES_USER: devices
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devices_dev_password}
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-Devices_Dev_Passw0rd!}
     volumes:
-      - devices-db-data:/var/lib/postgresql/data
+      - devices-db-data:/var/opt/mssql
     ports:
-      - "5432:5432"
+      - "1433:1433"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U devices -d devices"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+      test:
+        - CMD-SHELL
+        - /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -Q "SELECT 1" -b -o /dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
   api:
     build: .
@@ -22,7 +24,7 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__Devices: Host=db;Port=5432;Database=devices;Username=devices;Password=${POSTGRES_PASSWORD:-devices_dev_password}
+      ConnectionStrings__Devices: Server=db,1433;Database=devices;User Id=sa;Password=${MSSQL_SA_PASSWORD:-Devices_Dev_Passw0rd!};TrustServerCertificate=True
     ports:
       - "8080:8080"
     restart: unless-stopped

@@ -9,7 +9,7 @@ public static class PersistenceExtensions
     public const string ProviderSettingName = "Persistence:Provider";
 
     /// <summary>
-    /// Registers the DbContext and repository. PostgreSQL is the default and the supported production
+    /// Registers the DbContext and repository. SQL Server is the default and the supported production
     /// provider. "Sqlite" (file based) exists for the integration tests and quick local runs.
     /// </summary>
     public static IServiceCollection AddPersistence(this IServiceCollection services)
@@ -22,19 +22,19 @@ public static class PersistenceExtensions
                 ?? throw new InvalidOperationException(
                     $"Connection string '{ConnectionStringName}' is not configured.");
 
-            var provider = configuration[ProviderSettingName] ?? "PostgreSQL";
+            var provider = configuration[ProviderSettingName] ?? "SqlServer";
 
             switch (provider.ToLowerInvariant())
             {
-                case "postgresql" or "postgres" or "npgsql":
-                    options.UseNpgsql(connectionString, npgsql => npgsql.EnableRetryOnFailure());
+                case "sqlserver" or "mssql":
+                    options.UseSqlServer(connectionString, sqlServer => sqlServer.EnableRetryOnFailure());
                     break;
                 case "sqlite":
                     options.UseSqlite(connectionString);
                     break;
                 default:
                     throw new InvalidOperationException(
-                        $"Unsupported persistence provider '{provider}'. Use 'PostgreSQL' or 'Sqlite'.");
+                        $"Unsupported persistence provider '{provider}'. Use 'SqlServer' or 'Sqlite'.");
             }
         });
 

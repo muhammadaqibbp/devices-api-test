@@ -1,6 +1,6 @@
 # Devices API
 
-A REST API for persisting and managing device resources, built with C# 13 / .NET 9, ASP.NET Core, EF Core and PostgreSQL.
+A REST API for persisting and managing device resources, built with C# 14 / .NET 10, ASP.NET Core, EF Core and SQL Server.
 
 ## Contents
 
@@ -29,15 +29,15 @@ docker compose up --build
 - OpenAPI document: <http://localhost:8080/swagger/v1/swagger.json>
 - Health check: <http://localhost:8080/health>
 
-The database password defaults to a development value; override it with `POSTGRES_PASSWORD=... docker compose up --build`.
+The database password defaults to a development value; override it with `MSSQL_SA_PASSWORD=... docker compose up --build` (SQL Server requires a complex password: 8+ characters with upper/lower case, digits and symbols).
 Data is kept in the `devices-db-data` volume. Remove it with `docker compose down -v`.
 
 ### Locally
 
-Requires the .NET 9 SDK and a PostgreSQL instance.
+Requires the .NET 10 SDK and a SQL Server instance.
 
 ```bash
-docker compose up -d db                 # start only PostgreSQL
+docker compose up -d db                 # start only SQL Server
 dotnet run --project src/DevicesApi     # http://localhost:5080/swagger
 ```
 
@@ -156,14 +156,14 @@ dotnet test --collect:"XPlat Code Coverage"
 - **Unit tests** cover the entity rules, the state parser and every service operation (success, not found, validation and rule violations).
 - **Integration tests** run the real application against a temporary SQLite file and verify status codes, serialization, filters, paging,
   update and delete rules, rejection of `creationTime`, and the health and OpenAPI endpoints.
-  SQLite is used only by the tests; the application itself persists to PostgreSQL.
+  SQLite is used only by the tests; the application itself persists to SQL Server.
 
 ## Configuration
 
 | Setting                         | Default                                   | Description                                |
 |---------------------------------|-------------------------------------------|--------------------------------------------|
-| `ConnectionStrings:Devices`     | local PostgreSQL (see `appsettings.json`) | Database connection string                 |
-| `Persistence:Provider`          | `PostgreSQL`                              | `PostgreSQL`, or `Sqlite` for tests/dev    |
+| `ConnectionStrings:Devices`     | local SQL Server (see `appsettings.json`)  | Database connection string                 |
+| `Persistence:Provider`          | `SqlServer`                               | `SqlServer`, or `Sqlite` for tests/dev     |
 
 Any setting can be overridden with environment variables, e.g. `ConnectionStrings__Devices`.
 
@@ -182,9 +182,10 @@ Any setting can be overridden with environment variables, e.g. `ConnectionString
 
 - **EF Core migrations.** The schema is created with `EnsureCreated` at startup, which is fine for a first deployment but cannot evolve an existing database.
   Next step: add `Microsoft.EntityFrameworkCore.Design`, generate an `InitialCreate` migration and call `Database.MigrateAsync()` at startup (or run migrations as a deployment step).
-- **Brand filtering** uses `lower(brand)`; at larger scale add a functional index (or a `citext` column) so it can use an index.
+- **Brand filtering** uses `LOWER(brand)`, which prevents index seeks on the brand index. SQL Server's default collation is already case-insensitive, so at scale drop the `ToLower()` and rely on the collation (or add a computed, indexed column).
+- **GUID keys.** Ids are version 7 GUIDs; SQL Server orders `uniqueidentifier` differently from the byte order, so the clustered index does not get fully sequential inserts. Consider a separate clustered key if write volume grows.
 - **Authentication and authorization** are not implemented.
-- **Package versions** use floating patch ranges (e.g. `9.0.*`); pin them with a lock file (`RestorePackagesWithLockFile`) for reproducible builds.
+- **Package versions** use floating patch ranges (e.g. `10.0.*`); pin them with a lock file (`RestorePackagesWithLockFile`) for reproducible builds.
 - **Observability.** Add structured logging sinks, metrics and distributed tracing (OpenTelemetry).
 - **Rate limiting and CORS** are not configured.
 - **Soft delete / audit trail** of device state changes could be added if history is needed.
